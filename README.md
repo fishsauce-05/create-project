@@ -1,6 +1,6 @@
 # Create Project
 
-A Tkinter-based GUI tool for quickly scaffolding new projects. Select a project type, fill in the required fields, and the tool generates the project structure along with a `guidance.txt` containing useful commands.
+A GUI tool for quickly scaffolding new projects. Select a project type, fill in the required fields, and the tool generates the project structure along with a `guidance.txt` containing useful commands.
 
 ## Supported Project Types
 
@@ -99,6 +99,12 @@ self.fields = {
     "MyFramework": myframework.MyFramework
 }
 ```
+
+## Note for developers
+
+Contributions are always welcome! If you have an idea for a new project type, an improvement, or a bug fix, feel free to open an issue or submit a pull request.
+When adding a new project type, please follow the existing Cmd structure and register it in registry.py as described above.
+Please keep the code simple, readable, and consistent with the existing project structure.
 
 ## License
 
