@@ -2,6 +2,108 @@
 
 A GUI tool for quickly scaffolding new projects. Select a project type, fill in the required fields, and the tool generates the project structure along with a `guidance.txt` containing useful commands.
 
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/<username>/create-project.git
+cd create-project
+```
+
+### 2. Build the Application
+
+Make sure Python and PyInstaller are installed:
+
+```bash
+pip install pyinstaller
+```
+
+Then build the executable:
+
+```bash
+pyinstaller main.spec --noconfirm
+```
+
+The executable will be generated in:
+
+```text
+dist/
+└── main.exe       # Windows
+```
+
+On Linux, the executable will be generated as:
+
+```text
+dist/
+└── main
+```
+
+---
+
+## Windows Context Menu
+
+To add `Create Project` to the Windows right-click context menu, first build the application as described above.
+
+Move the executable to a permanent location, for example:
+
+```text
+C:\Tools\CreateProject\create-project.exe
+```
+
+Create a file named `install-context-menu.reg`:
+
+```reg
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CreateProject]
+@="Create Project"
+"Icon"="C:\\Tools\\CreateProject\\create-project.exe"
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\CreateProject\command]
+@="\"C:\\Tools\\CreateProject\\create-project.exe\" \"%V\""
+```
+
+Double-click the `.reg` file and confirm the changes.
+
+You can now right-click inside any folder and select:
+
+```text
+Create Project
+```
+
+The current folder will be passed to the application as the first argument.
+
+For example:
+
+```text
+create-project.exe "C:\Users\User\Projects"
+```
+
+---
+
+## Linux Context Menu
+
+Linux context-menu integration depends on the desktop environment and file manager being used.
+
+First build the application:
+
+```bash
+pyinstaller main.spec --noconfirm
+```
+
+Make the executable runnable:
+
+```bash
+chmod +x dist/main
+```
+
+You can then create a launcher or file-manager action that executes:
+
+```bash
+/path/to/create-project "%f"
+```
+
 ## Supported Project Types
 
 | Type | Tool | Description |
