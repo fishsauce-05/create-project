@@ -1,0 +1,6 @@
+# Maven: chạy: mvn archetype:generate -DgroupId=com.example -DartifactId=<tên dự án> -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
+# Gradle: chạy: mkdir my-library && cd my-library && gradle init --type java-library --dsl <chọn groovy/kotlin> --test-framework junit-jupiter --project-name my-library --no-split-project
+# NextJS: npx create-next-app@latest <tên folder>
+# NestJS: npm i -g @nestjs/cli && nest new <tên folder>
+
+Lệnh build: pyinstaller --clean --onefile --windowed main.py
