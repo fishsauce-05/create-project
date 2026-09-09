@@ -1,63 +1,79 @@
 # Create Project
 
+---
+
+**English**
+
 A Tkinter-based GUI tool for quickly scaffolding new projects. Select a project type, fill in the required fields, and the tool generates the project structure along with a `guidance.txt` containing useful commands.
 
-## Supported Project Types
+---
 
-| Type | Tool | Description |
-|------|------|-------------|
-| Maven | `mvn archetype:generate` | Java library project with JUnit 5 |
-| Gradle | `gradle init` | Java library with Groovy or Kotlin DSL |
-| NestJS | `@nestjs/cli` | TypeScript backend framework (Node.js) |
-| NextJS | `create-next-app` | React full-stack framework |
-| Android | Python file generator | Android app skeleton with AGP, Kotlin or Java |
+**Tiếng Việt**
 
-## Requirements
+Công cụ giao diện Tkinter dùng để tạo nhanh các dự án mới. Chọn loại dự án, điền các trường bắt buộc, công cụ sẽ tạo cấu trúc dự án kèm file `guidance.txt` chứa các lệnh hướng dẫn sử dụng.
+
+---
+
+## Supported Project Types / Loại dự án hỗ trợ
+
+| Loại | Công cụ | Mô tả |
+|------|---------|-------|
+| Maven | `mvn archetype:generate` | Dự án Java library với JUnit 5 |
+| Gradle | `gradle init` | Dự án Java library với Groovy hoặc Kotlin DSL |
+| NestJS | `@nestjs/cli` | Framework backend TypeScript (Node.js) |
+| NextJS | `create-next-app` | Framework React full-stack |
+| Android | Python file generator | Skeleton Android app với AGP, Kotlin hoặc Java |
+
+## Requirements / Yêu cầu
 
 - Python 3.13+
-- For Maven/Gradle projects: `mvn` and/or `gradle` must be installed and available in `PATH`
-- For NestJS/NextJS projects: Node.js must be installed
-- For Android projects: JDK 17+, Android SDK, and `ANDROID_HOME` environment variable set
-- PyInstaller (for building the `.exe` distribution)
+- Dự án Maven/Gradle: cài đặt `mvn` và/hoặc `gradle` trong `PATH`
+- Dự án NestJS/NextJS: cài đặt Node.js
+- Dự án Android: JDK 17+, Android SDK, và biến môi trường `ANDROID_HOME`
+- PyInstaller (để build file `.exe`)
 
-## Usage
+## Usage / Cách dùng
 
 ```bash
 python main.py
 ```
 
-The GUI will open. Select a project type from the dropdown, fill in the required fields, and click Submit.
+Cửa sổ GUI sẽ mở ra. Chọn loại dự án từ dropdown, điền thông tin cần thiết rồi nhấn Submit.
 
-## Build Distribution
+## Build Distribution / Build bản phân phối
 
 ```bash
 pyinstaller main.spec --noconfirm
 ```
 
-The output executable will be placed in `dist/main.exe`.
+File thực thi sẽ được tạo tại `dist/main.exe`.
 
-## Project Structure
+## Project Structure / Cấu trúc dự án
 
 ```
 create-project/
-├── main.py                  # Entry point
+├── main.py                  # Entry point / Điểm vào
 ├── main.spec                # PyInstaller spec
-├── registry.py              # Maps project types to command classes
+├── registry.py              # ánh xạ loại dự án sang command class
 ├── views/
-│   ├── view.py              # Abstract View base class
-│   └── tkinter_view.py      # Tkinter GUI implementation
+│   ├── view.py              # Abstract View base class / Lớp trừu tượng View
+│   └── tkinter_view.py      # Tkinter GUI implementation / Triển khai giao diện Tkinter
 └── commands/
-    ├── cmd.py               # Abstract Command base class (execute, guidance)
-    ├── maven.py              # Maven project scaffolding
-    ├── gradle.py             # Gradle project scaffolding
-    ├── nestjs.py             # NestJS project scaffolding
-    ├── nextjs.py             # Next.js project scaffolding
-    └── android.py            # Android project scaffolding
+    ├── cmd.py               # Abstract Command base class / Lớp trừu tượng Command
+    ├── maven.py              # Maven scaffolding
+    ├── gradle.py             # Gradle scaffolding
+    ├── nestjs.py             # NestJS scaffolding
+    ├── nextjs.py             # Next.js scaffolding
+    └── android.py            # Android scaffolding
 ```
 
-## Adding a New Project Type
+## Adding a New Project Type / Thêm loại dự án mới
 
-1. Create a new file in `commands/` extending `Cmd`:
+**1. Tạo file mới trong `commands/` kế thừa `Cmd`:**
+
+**English:** Create a new file in `commands/` extending `Cmd`:
+
+**Tiếng Việt:** Tạo file mới trong `commands/`, kế thừa class `Cmd`:
 
 ```python
 from commands.cmd import Cmd
@@ -89,7 +105,11 @@ class MyFramework(Cmd):
         return f"your-cli create {self.user_input.get('project_name', '')}"
 ```
 
-2. Register it in `registry.py`:
+**2. Đăng ký trong `registry.py`:**
+
+**English:** Register it in `registry.py`:
+
+**Tiếng Việt:** Đăng ký trong `registry.py`:
 
 ```python
 from commands import myframework
