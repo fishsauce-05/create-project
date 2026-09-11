@@ -117,11 +117,14 @@ class TkinterView(View):
             pady=10
         )
 
+    @override
     def run(self):
         self.root.mainloop()
 
+    @override
     def close(self):
         self.root.destroy()
 
+    @override
     def show_error(self, message):
         messagebox.showerror("Command failed", message)

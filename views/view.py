@@ -23,9 +23,5 @@ class View(ABC):
         pass
 
     @abstractmethod
-    def select_project_input(
-        self,
-        requirements,
-        on_submit: Callable[[dict], None]
-    ):
+    def select_project_input(self, requirements, on_submit: Callable[[dict], None]):
         pass
