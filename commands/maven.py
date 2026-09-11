@@ -17,6 +17,7 @@ class Maven(Cmd):
             "package_name": {
                 "type": "str",
                 "prompt": "Enter the package name (default = com.example):",
+                "default": "com.example",
                 "required": False
             }
         }

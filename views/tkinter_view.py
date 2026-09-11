@@ -6,59 +6,64 @@ from tkinter import messagebox
 class TkinterView(View):
     def __init__(self):
         self.root = tk.Tk()
-        self.lastRow = 0
+        self.last_row = 0
         self.result = {}
         self._on_submit = None
         self._dynamic_frame = None
 
     def __dropdown_input(self, labelText, default_value, options):
         label = tk.Label(self.root, text=labelText)
-        label.grid(row=self.lastRow, column=0, sticky="w")
+        label.grid(row=self.last_row, column=0, sticky="w")
 
         variable = tk.StringVar(value=default_value)
 
         dropdown = tk.OptionMenu(self.root, variable, *options)
-        dropdown.grid(row=self.lastRow, column=1, sticky="ew")
+        dropdown.grid(row=self.last_row, column=1, sticky="ew")
 
-        self.lastRow += 1
+        self.last_row += 1
 
         return variable
 
     def __str_input(self, parent, labelText):
         label = tk.Label(parent, text=labelText)
-        label.grid(row=self.lastRow, column=0, sticky="w")
+        label.grid(row=self.last_row, column=0, sticky="w")
 
         entry = tk.Entry(parent)
-        entry.grid(row=self.lastRow, column=1, sticky="ew")
+        entry.grid(row=self.last_row, column=1, sticky="ew")
 
-        self.lastRow += 1
+        self.last_row += 1
 
         return entry
 
     def __radio_input(self, parent, req):
         label = tk.Label(parent, text=req["prompt"])
-        label.grid(row=self.lastRow, column=0, sticky="w")
+        label.grid(row=self.last_row, column=0, sticky="w")
 
         variable = tk.StringVar(value=req["option"][0])
 
         curColumn = 1
         for option in req["option"]:
             radio = tk.Radiobutton(parent, text=option, variable=variable, value=option)
-            radio.grid(row=self.lastRow, column=curColumn, sticky="w")
+            radio.grid(row=self.last_row, column=curColumn, sticky="w")
             curColumn += 1
 
-        self.lastRow += 1
+        self.last_row += 1
 
         return variable
 
-    def __submit(self, entries):
-        result = {
-            key: value.get()
-            for key, value in entries.items()
-        }
-        if any(not value.strip() for value in result.values()):
-            messagebox.showerror("Invalid input", "Please fill in all required fields.")
-            return
+    def __submit(self, entries, requirements):
+        result = {}
+        
+        for key, entry in entries.items():
+            value = entry.get().strip()
+            requirement = requirements[key]
+
+            if not value and "default" not in requirement:
+                messagebox.showerror("Input Error", f"{key} is required.")
+                return
+            
+            value = value or requirement.get("default")
+            result[key] = value
 
         self.result = result
         self._on_submit(result)
@@ -90,11 +95,10 @@ class TkinterView(View):
             self._dynamic_frame.destroy()
 
         self._dynamic_frame = tk.Frame(self.root)
-        self._dynamic_frame.grid(row=self.lastRow, column=0, columnspan=2, sticky="ew")
+        self._dynamic_frame.grid(row=self.last_row, column=0, columnspan=2, sticky="ew")
         self._dynamic_frame.columnconfigure(1, weight=1)
 
         entries = {}
-        dynamicRow = 0
 
         for requirement, req in requirements.items():
             match req["type"]:
@@ -108,10 +112,10 @@ class TkinterView(View):
         button = tk.Button(
             self._dynamic_frame,
             text="Submit",
-            command=lambda: self.__submit(entries)
+            command=lambda: self.__submit(entries, requirements)
         )
         button.grid(
-            row=self.lastRow,
+            row=self.last_row,
             column=0,
             columnspan=2,
             pady=10
