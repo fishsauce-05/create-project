@@ -7,17 +7,17 @@ A GUI tool for quickly scaffolding new projects. Select a project type, fill in 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/<username>/create-project.git
+git clone https://github.com/fishsauce-05/create-project.git
 cd create-project
 ```
 
-### 2. Build the Application
+### 2. Install Dependencies
 
-Make sure Python and PyInstaller are installed:
+python -m pip install -r requirements.txt
 
-```bash
-pip install pyinstaller
-```
+### 3. Build Distribution
+
+pyinstaller main.spec --noconfirm
 
 Then build the executable:
 
