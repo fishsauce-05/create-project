@@ -1,6 +1,6 @@
 from commands.cmd import Cmd
-from views.tkinter_view import TkinterView
-from views.view import View
+from views.base.view import View
+from views.tkinter.tkinter_view import TkinterView
 from registry import Registry
 
 class Main:
@@ -9,7 +9,6 @@ class Main:
         self.registry = registry
 
     def run(self):
-        self.view.activateUI()
         self.view.select_project_type(
             self.registry.get_project_types(),
             self._select_project_type
@@ -29,11 +28,7 @@ class Main:
             try:
                 cmd.execute()
             except Exception as e:
-                error_msg = str(e)
-                self.view.root.after(
-                    0,
-                    lambda: self.view.show_error(error_msg)
-                )
+                self.view.show_error(str(e))
                 return
             self.view.close()
 
