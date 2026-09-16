@@ -1,4 +1,3 @@
-from commands.cmd import Cmd
 from views.base.view import View
 from views.tkinter.tkinter_view import TkinterView
 from registry import Registry
