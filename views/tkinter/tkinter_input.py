@@ -28,12 +28,12 @@ class TkinterInput(UIInput):
         return Field(variable.get)
         
     @override
-    def str_input(self, row: int, req: dict):
+    def str_input(self, row: int, req: dict, parent: tk.Misc = None):
         default = req.get("default")
         
-        label = tk.Label(self._root, text=req["prompt"])
+        label = tk.Label(parent, text=req["prompt"])
         label.grid(row=row, column=0, sticky="w")
-        entry = tk.Entry(self._root)
+        entry = tk.Entry(parent)
         entry.grid(row=row, column=1, sticky="ew")
         
         if default is not None:
@@ -41,12 +41,12 @@ class TkinterInput(UIInput):
         return Field(entry.get, default=default)
 
     @override
-    def radio_input(self, row: int, req: dict):
-        label = tk.Label(self._root, text=req["prompt"])
+    def radio_input(self, row: int, req: dict, parent: tk.Misc = None):
+        label = tk.Label(parent, text=req["prompt"])
         label.grid(row=row, column=0, sticky="w")
         
         variable = tk.StringVar(value=req["option"][0])
         for i, option in enumerate(req["option"], start=1):
-            radio = tk.Radiobutton(self._root, text=option, variable=variable, value=option)
+            radio = tk.Radiobutton(parent, text=option, variable=variable, value=option)
             radio.grid(row=row, column=i, sticky="w")
         return Field(variable.get, default = req["option"][0])

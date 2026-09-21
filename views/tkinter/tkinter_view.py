@@ -10,6 +10,7 @@ class TkinterView(View):
         self.root.title("Create Project")
         self.root.geometry("400x300")
         self.row = 0
+        self.form_frame = None
         
     @override
     def select_project_type(self, project_types, on_select):
@@ -35,12 +36,18 @@ class TkinterView(View):
         
     @override
     def render_form(self, requirements, on_submit):
+        if self.form_frame is not None:
+            self.form_frame.destroy()
+            
+        self.form_frame = tk.Frame(self.root)
+        self.form_frame.grid(row=self.row, column=0, columnspan=2, sticky="ew")
+        
         fields = {}
         for key, value in requirements.items():
             if value['type'] == 'str':
-                fields[key] = self.input.str_input(self.row, value)
+                fields[key] = self.input.str_input(self.row, value, self.form_frame)
             elif value['type'] == 'radio':
-                fields[key] = self.input.radio_input(self.row, value)
+                fields[key] = self.input.radio_input(self.row, value, self.form_frame)
             self.row += 1
             
         def submit():
@@ -61,7 +68,7 @@ class TkinterView(View):
             on_submit(user_input)
 
         submit_button = tk.Button(
-                            self.root, 
+                            self.form_frame, 
                             text="Submit", 
                             command=submit
                         )
