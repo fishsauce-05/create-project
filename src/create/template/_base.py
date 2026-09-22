@@ -11,14 +11,13 @@ class CreateProjectByTemplate(CreateProject, ABC):
     def __init__(self):
         super().__init__()
         self.text = TextReplacer()
-        
+
     @property
     def template_path(self) -> Path:
-        def get_base_dir() -> Path:
-            if getattr(sys, "frozen", False):
-                return Path(sys._MEIPASS)
-            return Path(__file__).resolve().parents[2]
-        base_dir = get_base_dir()
+        if getattr(sys, "frozen", False):
+            base_dir = Path(sys._MEIPASS)
+        else:
+            base_dir = Path(__file__).resolve().parents[3]
         return base_dir / "template"
     
     @property

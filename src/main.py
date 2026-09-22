@@ -1,6 +1,6 @@
 from views.base.view import View
 from views.tkinter.tkinter_view import TkinterView
-from registry import Registry
+from create.registry import Registry
 
 class Main:
     def __init__(self, view: View, registry: Registry):

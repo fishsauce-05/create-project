@@ -24,7 +24,11 @@ class CreateProject(ABC):
         self._create_guidance()
 
     def _validate_requirements(self):
-        missing = [key for key in self.requirements if key not in self.user_input and self.requirements[key].get("required", False)]
+        missing = [
+            requirement["name"]
+            for key, requirement in self.requirements.items()
+            if key not in self.user_input and requirement.get("required", False)
+        ]
         if missing:
             raise ValueError(f"Missing required inputs: {', '.join(missing)}")
         

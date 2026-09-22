@@ -1,13 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+
+
+project_root = Path(SPECPATH).resolve().parent
 
 a = Analysis(
-    ['main.py'],
-    pathex=[],
+    [str(project_root / 'src' / 'main.py')],
+    pathex=[str(project_root / 'src')],
     binaries=[],
-    datas=[
-        ('template', 'template'),
-    ],
+    datas=[(str(project_root / 'template'), 'template')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

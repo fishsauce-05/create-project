@@ -57,7 +57,7 @@ class TkinterView(View):
             }
 
             missing = [
-                requirements[key]["prompt"]
+                requirements[key]["name"]
                 for key, value in user_input.items()
                 if requirements[key].get("required") and not value
             ]

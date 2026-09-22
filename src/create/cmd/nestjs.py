@@ -12,6 +12,7 @@ class Nest(Cmd):
             "project_name": {
                 "type": "str",
                 "prompt": "Enter the project name:",
+                "name": "project name",
                 "required": True
             }
         }

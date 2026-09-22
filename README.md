@@ -17,12 +17,12 @@ python -m pip install -r requirements.txt
 
 ### 3. Build Distribution
 
-pyinstaller main.spec --noconfirm
+pyinstaller src/main.spec --noconfirm
 
 Then build the executable:
 
 ```bash
-pyinstaller main.spec --noconfirm
+pyinstaller src/main.spec --noconfirm
 ```
 
 The executable will be generated in:
@@ -89,7 +89,7 @@ Linux context-menu integration depends on the desktop environment and file manag
 First build the application:
 
 ```bash
-pyinstaller main.spec --noconfirm
+pyinstaller src/main.spec --noconfirm
 ```
 
 Make the executable runnable:
@@ -125,7 +125,7 @@ You can then create a launcher or file-manager action that executes:
 ## Usage
 
 ```bash
-python main.py
+python src/main.py
 ```
 
 The GUI will open. Select a project type from the dropdown, fill in the required fields, and click Submit.
@@ -133,7 +133,7 @@ The GUI will open. Select a project type from the dropdown, fill in the required
 ## Build Distribution
 
 ```bash
-pyinstaller main.spec --noconfirm
+pyinstaller src/main.spec --noconfirm
 ```
 
 The output executable will be placed in `dist/main.exe`.
@@ -142,27 +142,31 @@ The output executable will be placed in `dist/main.exe`.
 
 ```
 create-project/
-├── main.py                  # Entry point
-├── main.spec                # PyInstaller spec
-├── registry.py              # Maps project types to command classes
-├── views/
-│   ├── view.py              # Abstract View base class
-│   └── tkinter_view.py      # Tkinter GUI implementation
-└── commands/
-    ├── cmd.py               # Abstract Command base class (execute, guidance)
-    ├── maven.py              # Maven project scaffolding
-    ├── gradle.py             # Gradle project scaffolding
-    ├── nestjs.py             # NestJS project scaffolding
-    ├── nextjs.py             # Next.js project scaffolding
-    └── android.py            # Android project scaffolding
+├── src/
+│   ├── create/
+│   │   ├── template/
+│   │   ├── cmd/
+│   │   ├── helper/
+│   │   ├── creator.py
+│   │   └── registry.py
+│   ├── views/
+│   │   ├── base/
+│   │   └── tkinter/
+│   ├── main.py
+│   └── main.spec
+├── template/
+│   ├── android-studio/
+│   └── ios/
+├── build.bat
+└── README.md
 ```
 
 ## Adding a New Project Type
 
-1. Create a new file in `commands/` extending `Cmd`:
+1. Create a new file in `src/create/cmd/` extending `Cmd`:
 
 ```python
-from commands.cmd import Cmd
+from create.cmd._base import CreateProjectByCommand as Cmd
 from typing import override
 
 class MyFramework(Cmd):
@@ -194,7 +198,7 @@ class MyFramework(Cmd):
 2. Register it in `registry.py`:
 
 ```python
-from commands import myframework
+from create.cmd import myframework
 
 self.fields = {
     ...,
