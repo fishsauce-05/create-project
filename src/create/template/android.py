@@ -30,7 +30,7 @@ class Android(CreateProjectByTemplate):
             },
             "application_name": {
                 "type": "str", 
-                "prompt": f"Enter the applicatoin name (default: {DEFAULT_APP_NAME})",
+                "prompt": f"Enter the application name (default: {DEFAULT_APP_NAME})",
                 "default": DEFAULT_APP_NAME,
                 "required": False
             },
