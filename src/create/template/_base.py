@@ -18,7 +18,7 @@ class CreateProjectByTemplate(CreateProject, ABC):
             base_dir = Path(sys._MEIPASS)
         else:
             base_dir = Path(__file__).resolve().parents[3]
-        return base_dir / "template"
+        return base_dir / "boilerplate"
     
     @property
     @abstractmethod
@@ -42,11 +42,18 @@ class CreateProjectByTemplate(CreateProject, ABC):
         self.text.replace(project_dir, self.replaced_text, self.ignored_patterns)
         
     def __copy_template(self):
+        project_name = self.user_input.get("project_name", "")
+        project_dir = self.project_path / project_name
+        if project_dir.exists():
+            raise FileExistsError(
+                f"Project directory already exists: {project_dir}"
+            )
+
         shutil.copytree(
             src=self.template_path,
-            dst=self.project_path / self.user_input.get("project_name", ""),
+            dst=project_dir,
         )
-        return Path(self.project_path / self.user_input.get("project_name", ""))
+        return project_dir
     
     def __rename_directories(self, project_dir: Path):
         for old_path, new_path in self.renamed_dir.items():
