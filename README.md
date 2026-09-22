@@ -144,7 +144,7 @@ The output executable will be placed in `dist/main.exe`.
 create-project/
 ├── src/
 │   ├── create/
-│   │   ├── template/
+│   │   ├── boilerplate/
 │   │   ├── cmd/
 │   │   ├── helper/
 │   │   ├── creator.py
@@ -154,7 +154,7 @@ create-project/
 │   │   └── tkinter/
 │   ├── main.py
 │   └── main.spec
-├── template/
+├── boilerplate/
 │   ├── android-studio/
 │   └── ios/
 ├── build.bat
