@@ -1,12 +1,14 @@
-from commands import maven, gradle, nestjs, nextjs
+from create.cmd import Maven, Gradle, Nest, Nextjs
+from create.template import Android
 
 class Registry:
     def __init__(self):
         self.fields = {
-            "Maven": maven.Maven,
-            "Gradle": gradle.Gradle,
-            "NestJS": nestjs.Nest,
-            "NextJS": nextjs.Nextjs
+            "Maven": Maven,
+            "Gradle": Gradle,
+            "NestJS": Nest,
+            "NextJS": Nextjs,
+            "Android": Android
         }
     
     def get_project_types(self):
