@@ -9,7 +9,7 @@ a = Analysis(
     [str(project_root / 'src' / 'main.py')],
     pathex=[str(project_root / 'src')],
     binaries=[],
-    datas=[(str(project_root / 'template'), 'template')],
+    datas=[(str(project_root / 'boilerplate'), 'boilerplate')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
