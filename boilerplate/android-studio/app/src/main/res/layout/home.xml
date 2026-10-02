@@ -10,8 +10,16 @@
         android:id="@+id/txtHello"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello Fishsauce"
+        android:text="It's Fishsauce ~(￣▽￣)~"
         android:textSize="22sp"
         android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/txtHelp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Help me to develop:\nhttps://github.com/fishsauce-05/create-project"
+        android:textSize="16sp"
+        android:autoLink="web" />
 
 </LinearLayout>
