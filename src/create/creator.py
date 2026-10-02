@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 import sys
-import textwrap
 from pathlib import Path
+from .helper import FileWriter
 
 class CreateProject(ABC):
     def __init__(self):
         self.project_path = Path(sys.argv[1] if len(sys.argv) > 1 else '.')
         self.user_input = {}
+        self.file = FileWriter()
 
     @property
     @abstractmethod
@@ -41,5 +42,4 @@ class CreateProject(ABC):
         project_dir = self.project_path / project_name
         guidance = project_dir / "guidance.txt"
         
-        cleaned = textwrap.dedent(self.readme).strip()
-        guidance.write_text(cleaned, encoding="utf-8")
+        self.file.insert_one(guidance, self.readme)
