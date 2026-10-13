@@ -22,9 +22,9 @@ class UIInput(ABC):
     def create_input(self, requirements: dict[str, dict[str, str]]) -> Field:
         match requirements["type"]:
             case "str":
-                return self.str_input(specs.StrSpec(requirements["prompt"]), requirements.get("default"))
+                return self.str_input(specs.StrSpec(requirements["prompt"], requirements.get("default")))
             case "radio":
-                return self.radio_input(specs.RadioSpec(requirements["prompt"]), requirements["option"], requirements.get("default"))
+                return self.radio_input(specs.RadioSpec(requirements["prompt"], requirements["option"], requirements.get("default")))
             case "checkbox":
                 return self.checkbox_input(specs.CheckboxSpec(requirements["prompt"]))
             case "dropdown":

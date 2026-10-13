@@ -57,7 +57,7 @@ class TkinterView(View):
 
         fields = {}
         for key, req in requirements.items():
-            fields[key] = self._build_field(req)
+            fields[key] = self.input.create_input(req)
 
         submit_button = tk.Button(
             self.form_frame,
@@ -65,25 +65,6 @@ class TkinterView(View):
             command=lambda: self._submit(fields, requirements, on_submit),
         )
         submit_button.grid(row=self.input.row, column=0, columnspan=2)
-
-    def _build_field(self, req: dict) -> Field:
-        match req["type"]:
-            case "str":
-                return self.input.str_input(
-                    specs.StrSpec(prompt=req["prompt"], default=req.get("default"))
-                )
-            case "radio":
-                options = list(req["option"])
-                default = req.get("default") or (options[0] if options else None)
-                return self.input.radio_input(
-                    specs.RadioSpec(prompt=req["prompt"], options=options, default=default)
-                )
-            case "checkbox":
-                return self.input.checkbox_input(
-                    specs.CheckboxSpec(prompt=req["prompt"], default=req.get("default", False))
-                )
-            case _:
-                raise ValueError(f"Unsupported input type: {req['type']}")
 
     def _submit(self, fields, requirements, on_submit):
         user_input = {
