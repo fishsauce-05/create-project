@@ -1,6 +1,6 @@
 import tkinter as tk
 import views.base.specification as specs
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 from typing import override
 from views.base.field import Field
 from views.base.view import View
@@ -14,6 +14,8 @@ class TkinterView(View):
         self.root.geometry("500x400")
         self.row = 0
         self.form_frame = None
+        self.progress_frame = None
+        self.progress_bar = None
 
     @override
     def select_project_type(self, project_types, on_select):
@@ -65,6 +67,38 @@ class TkinterView(View):
             command=lambda: self._submit(fields, requirements, on_submit),
         )
         submit_button.grid(row=self.input.row, column=0, columnspan=2)
+
+    @override
+    def show_progress(self, message):
+        self.progress_frame = tk.Frame(self.root)
+        self.progress_frame.grid(row=self.row, column=0, columnspan=2)
+
+        label = tk.Label(self.progress_frame, text=message)
+        label.pack(fill="x")
+
+        self.progress_bar = ttk.Progressbar(
+            self.progress_frame,
+            mode="indeterminate",
+            length=320,
+        )
+        self.progress_bar.pack(fill="x", pady=4)
+        self.progress_bar.start(15)
+
+        self.root.config(cursor="watch")
+
+    @override
+    def close_progress(self) -> None:
+        if self.progress_bar is not None:
+            self.progress_bar.stop()
+            self.progress_bar = None
+        if self.progress_frame is not None:
+            self.progress_frame.destroy()
+            self.progress_frame = None
+        self.root.config(cursor="")
+
+    @override
+    def post(self, fn):
+        self.root.after(0, fn)
 
     def _submit(self, fields, requirements, on_submit):
         user_input = {

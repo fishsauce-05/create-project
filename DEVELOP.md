@@ -5,9 +5,10 @@ installation and usage, see [README.md](README.md).
 
 - [Development Setup](#development-setup)
 - [Architecture](#architecture)
+- [Controller and Concurrency](#controller-and-concurrency)
 - [CreateProject](#createproject--srccreatecreatorpy)
-- [CreateProjectByCommand](#createprojectbycommand--srccreatecmd_basepy)
-- [CreateProjectByTemplate](#createprojectbytemplate--srccreatetemplate_basepy)
+- [CreateProjectByCommand](#createprojectbycommand--srccreatecmdbasepy)
+- [CreateProjectByTemplate](#createprojectbytemplate--srccreatetemplatebasepy)
 - [View Layer](#view-layer--srcviews)
 - [Helpers](#helpers--srccreatehelper)
 - [Android Template in Depth](#android-template-in-depth)
@@ -29,7 +30,8 @@ python src/main.py "C:\Projects"   # run against an explicit target folder
 ```
 
 The `src/` directory is placed on `sys.path` by virtue of being the entry script's folder, so
-`create.*` and `views.*` import as top-level packages. There is no packaging/install step.
+`create.*`, `views.*` and `concurrency.*` import as top-level packages. There is no
+packaging/install step.
 
 Two files are intentionally **documentation-only** and are not imported anywhere:
 
@@ -43,15 +45,28 @@ Copy one of them as the starting point for a new creator.
 ## Architecture
 
 ```text
-main.py ──> views (Tkinter)  ──> create.registry.Registry ──> creator instance
-                                                                   │
-                                                     CreateProject.execute()
-                                                                   │
-                              ┌────────────────────────────────────┴─────────────────────┐
-                              ▼                                                          ▼
-            CreateProjectByCommand (cmd/)                        CreateProjectByTemplate (template/)
-            runs `self.command` via subprocess                   copy + rename + text-replace + new files
+main.py  (composition root)
+   │  builds TkinterView, Registry and ThreadedBackgroundRunner(post=view.post)
+   ▼
+ProjectController (controller.py)
+   │
+   │  view.select_project_type(types, on_select)      ──► user picks a type
+   │  registry.create(type)                           ──► creator instance
+   │  view.select_project_input(creator.requirements, on_submit)
+   │  on submit:
+   │      view.show_progress("Creating project…")
+   │      runner.run(creator.execute, on_success, on_error)
+   │          on_success ──► view.close_progress() + view.close()
+   │          on_error   ──► view.close_progress() + view.show_error(message)
+   ▼
+CreateProject.execute()  (creator.py, Template Method)
+   validate → _do_execute → write guidance.txt
 ```
+
+The UI and the generation logic never reference each other directly: `ProjectController` drives
+the `View` interface and the `BackgroundRunner` interface, while creators know nothing about
+either. That is what lets the async plumbing (threads, `root.after`) stay out of the creators
+and keeps a future CLI/web view a drop-in replacement.
 
 `execute()` (defined once in `CreateProject`) always runs three steps:
 
@@ -64,6 +79,70 @@ Subclasses implement `requirements`, `readme` and `_do_execute()`; they should n
 
 ---
 
+## Controller and Concurrency
+
+### `ProjectController` — `src/controller.py:5`
+
+The single orchestration point, independent of any concrete UI or threading model.
+
+| Member | Behaviour |
+|--------|-----------|
+| `run()` (`:11`) | Hands the project types to the view and starts the view's event loop |
+| `_select_project_type(type)` (`:18`) | Builds the creator via the registry, then shows its form |
+| `_execute(creator, user_input)` (`:25`) | Stores the answers on the creator, shows progress, dispatches `creator.execute` to the runner |
+| `_on_success()` (`:34`) | Closes the progress indicator and the window |
+| `_on_error(message)` (`:38`) | Closes the progress indicator and shows the error dialog |
+
+### `BackgroundRunner` — `src/concurrency/runner.py:4`
+
+Abstract port for "run this work off the UI thread and call me back":
+
+```python
+def run(self, work, on_success, on_error) -> None: ...
+```
+
+- `work` — a zero-argument callable that raises on failure.
+- `on_success` — called when `work` returns normally.
+- `on_error` — called with the raised `Exception`.
+
+The controller depends only on this interface, so tests can substitute a synchronous runner.
+
+### `ThreadedBackgroundRunner` — `src/concurrency/threaded_runner.py:5`
+
+The production adapter. It runs `work` in a `daemon` thread and marshals the callbacks back to
+the UI thread through an injected `post` callable:
+
+```python
+def _target():
+    try:
+        work()
+    except Exception as e:
+        post(lambda: on_error(e))
+        return
+    self.post(on_success)
+```
+
+`post` is `TkinterView.post` (`src/views/tkinter/tkinter_view.py:100`), which wraps
+`self.root.after(0, fn)`. This is the only place Tkinter's thread-safety rule ("touch widgets
+from the main thread only") is satisfied — everything else stays UI-agnostic.
+
+### `main.py` — composition root
+
+`src/main.py:6` builds the three collaborators and injects them, then runs the controller:
+
+```python
+view = TkinterView()
+registry = Registry()
+runner = ThreadedBackgroundRunner(post=view.post)
+
+ProjectController(view, registry, runner).run()
+```
+
+There is no application logic in `main.py` — swapping the view or the runner is a one-line
+change here.
+
+---
+
 ## `CreateProject` — `src/create/creator.py`
 
 Abstract base class for every creator.
@@ -72,11 +151,11 @@ Abstract base class for every creator.
 - `user_input` — dict filled in by the GUI
 - `file` — a `FileWriter` used for `guidance.txt`
 - `requirements` / `readme` — abstract properties
-- `execute()` — validates required inputs, calls `_do_execute()`, writes `guidance.txt`
+- `execute()` (`:22`) — validates required inputs, calls `_do_execute()`, writes `guidance.txt`
 
-`_validate_requirements()` checks that every key with `"required": True` is present in
+`_validate_requirements()` (`:27`) checks that every key with `"required": True` is present in
 `user_input`. In practice the Tkinter view also validates before submitting
-(`src/views/tkinter/tkinter_view.py:69`), and checkbox fields are excluded from that check.
+(`src/views/tkinter/tkinter_view.py:103`), and checkbox fields are excluded from that check.
 
 ---
 
@@ -85,10 +164,15 @@ Abstract base class for every creator.
 Runs an external CLI. `_do_execute()` (`src/create/cmd/_base.py:12`) splits the `command`
 string on `&&`. A segment starting with `cd <dir>` changes the working directory for the
 segments that follow; every other segment is run with `subprocess.run(..., shell=True,
-check=True)`, so a non-zero exit code surfaces as an error dialog.
+check=True)`, so a non-zero exit code raises and is surfaced as an error dialog by the
+controller.
 
 Subclasses only implement `command`, `requirements` and `readme`. Existing creators:
 `Maven`, `Gradle`, `Nest`, `Nextjs` (exported from `src/create/cmd/__init__.py`).
+
+Because the command runs inside the background worker, a long CLI invocation no longer blocks
+the UI. Note there is currently **no** stdout/stderr streaming and **no** cancel support — the
+progress bar is indeterminate (see [Known Caveats](#known-caveats)).
 
 ---
 
@@ -99,7 +183,7 @@ Four steps, driven by four abstract properties plus one optional hook. `_do_exec
 
 | Member | Purpose |
 |--------|---------|
-| `template_path` | Source folder to copy (resolved relative to the repo, or `sys._MEIPASS` when frozen) |
+| `template_path` | Source folder to copy. Defaults to `<repo root>/boilerplate` (or `sys._MEIPASS/boilerplate` when frozen) |
 | `renamed_dir` | `{old relative path: new relative path}` — directories are moved |
 | `replaced_text` | `{old text: new text}` — plain substring replacement inside text files |
 | `ignored_patterns` | `fnmatch` patterns of files that must not be rewritten |
@@ -124,18 +208,24 @@ absent from a fresh clone) instead of patching an `sdk.dir=` prefix that might n
 ## View Layer — `src/views/`
 
 The view layer is fully abstracted, so a different UI (CLI, web) only needs a new `View`
-implementation — no creator changes.
+implementation — no creator or controller changes.
 
-- `base/view.py` — `View` interface: `select_project_type`, `select_project_input`,
-  `render_form`, `run`, `close`, `show_error`.
-- `base/specification.py` — frozen dataclasses describing each input: `StrSpec`, `RadioSpec`,
-  `CheckboxSpec`, `DropdownSpec`.
+- `base/view.py` — `View` interface:
+  - `select_project_type` (`:6`) / `select_project_input` (`:10`) — render the type dropdown and
+    the input form
+  - `render_form` (`:26`) — build the form widgets for a `requirements` dict
+  - `show_progress` (`:30`) / `close_progress` (`:34`) — show and hide a busy indicator
+  - `post` (`:38`) — schedule a callback on the UI thread
+  - `run` (`:14`) / `close` (`:18`) / `show_error` (`:22`) — event loop, teardown, error dialog
+- `base/specification.py` — frozen dataclasses describing each input: `DefaultSpec`, `StrSpec`,
+  `RadioSpec`, `CheckboxSpec`, `DropdownSpec`.
 - `base/ui_input.py` — `UIInput.create_input()` (`src/views/base/ui_input.py:22`) maps a
   `type` string to the matching widget factory.
 - `base/field.py` — `Field` wraps a getter and applies the default fallback.
 - `tkinter/tkinter_input.py` — widget factories (`str_input`, `radio_input`, `checkbox_input`,
   `dropdown_input`).
-- `tkinter/tkinter_view.py` — form rendering, required-field validation and submit handling.
+- `tkinter/tkinter_view.py` — form rendering, required-field validation, submit handling and the
+  progress bar.
 
 Supported field types and how they render:
 
@@ -145,6 +235,14 @@ Supported field types and how they render:
 | `radio` | radio buttons | first `option` is the default when no `default` is given |
 | `checkbox` | checkbutton | excluded from the required-field check |
 | `dropdown` | option menu | `option` list required; fires an `on_select` callback |
+
+### Progress indicator
+
+`TkinterView.show_progress()` (`src/views/tkinter/tkinter_view.py:72`) builds a small frame with
+a label and a `ttk.Progressbar(mode="indeterminate")`, then sets a busy cursor.
+`close_progress()` (`:90`) stops the animation, destroys the frame and restores the cursor. Both
+are invoked by the controller, never by a creator — creators just do their work and raise on
+failure.
 
 ---
 
@@ -368,6 +466,11 @@ The skeleton is bundled into the executable by
 `datas=[(str(project_root / 'boilerplate'), 'boilerplate')]` in `src/main.spec`, so a new
 template folder is picked up automatically on the next build.
 
+> Note: `boilerplate/` (the skeleton folder copied into new projects) and
+> `src/create/template/` (the Python package holding template-based creators) are two different
+> things. A template creator usually lives in the latter and points at a sub-folder of the
+> former.
+
 ---
 
 ## Build Distribution
@@ -386,7 +489,8 @@ dist/
 └── main           # Linux / macOS
 ```
 
-When frozen, `template_path` resolves to `sys._MEIPASS` so the bundled boilerplate is used.
+When frozen, `template_path` resolves to `sys._MEIPASS/boilerplate` so the bundled skeleton is
+used.
 
 ---
 
@@ -395,6 +499,11 @@ When frozen, `template_path` resolves to `sys._MEIPASS` so the bundled boilerpla
 ```text
 create-project/
 ├── src/
+│   ├── main.py                   # composition root: wire view + registry + runner
+│   ├── controller.py             # ProjectController: orchestration, UI/thread agnostic
+│   ├── concurrency/
+│   │   ├── runner.py             # BackgroundRunner port
+│   │   └── threaded_runner.py    # ThreadedBackgroundRunner adapter (post to UI thread)
 │   ├── create/
 │   │   ├── creator.py            # CreateProject ABC: validate, execute, write guidance.txt
 │   │   ├── registry.py           # GUI label -> creator class
@@ -412,7 +521,6 @@ create-project/
 │   ├── views/
 │   │   ├── base/                 # View / UIInput / Field / specification abstractions
 │   │   └── tkinter/              # Tkinter implementation
-│   ├── main.py                   # entry point: view + registry wiring
 │   └── main.spec                 # PyInstaller spec (bundles boilerplate/)
 ├── boilerplate/
 │   └── android-studio/           # Android skeleton copied for new projects
@@ -433,6 +541,9 @@ create-project/
   and the template copy both depend on it.
 - Read answers with `self.user_input.get("<key>", "<default>")` and keep the fallback in sync
   with the `"default"` declared in `requirements`.
+- **Never touch widgets (or the `View`) from a creator.** Creation work runs on a background
+  thread; UI updates must go through `View.post` / the runner callbacks so they run on the main
+  thread.
 - Keep the code simple, readable and consistent with the surrounding style.
 - Contributions are welcome via issues or pull requests.
 
@@ -440,6 +551,13 @@ create-project/
 
 ## Known Caveats
 
+- **The progress bar is indeterminate.** `show_progress` / `close_progress` have no percentage
+  or step API, so a command creator cannot report "step 2/5" and stdout/stderr are not streamed
+  into the GUI. Adding progress reporting means extending the `View` (and the runner) with a
+  progress/log channel.
+- **No cancellation.** `ThreadedBackgroundRunner` starts a daemon thread and never keeps a
+  handle to the `subprocess`, so a running CLI cannot be cancelled and a half-generated folder
+  is not cleaned up on failure.
 - **`rootProject.name` is not renamed.** `settings.gradle.kts` contains `Fishsauce & Cotton`
   while `DEFAULT_APP_NAME` is `Fishsauce and Cotton`, so choosing an application name rewrites
   `strings.xml` but leaves the Gradle project name as `Fishsauce & Cotton`. Align the two (or

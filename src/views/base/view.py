@@ -25,3 +25,15 @@ class View(ABC):
     @abstractmethod
     def render_form(self, requirements: dict[str, dict[str, str]], on_submit: Callable[[dict], None]) -> None:
         pass
+
+    @abstractmethod
+    def show_progress(self, message: str) -> None:
+        pass
+
+    @abstractmethod
+    def close_progress(self) -> None:
+        pass
+
+    @abstractmethod
+    def post(self, fn: Callable[[], None]) -> None:
+        pass

@@ -4,6 +4,9 @@ A small, cross-platform GUI tool that scaffolds new projects. Pick a project typ
 few fields, and the tool generates the project in the current folder — together with a
 `guidance.txt` file containing the exact commands you need to build, test and run it.
 
+Generation runs on a background thread, so the window stays responsive and an indeterminate
+progress bar is shown until the project is ready.
+
 Two generation strategies are supported:
 
 - **Command based** — delegates to an external CLI (`mvn`, `gradle`, `npx create-next-app`, …).
@@ -17,6 +20,7 @@ New to the codebase and want to add a project type? See [DEVELOP.md](DEVELOP.md)
 ## Table of Contents
 
 - [Features](#features)
+- [How It Works](#how-it-works)
 - [Supported Project Types](#supported-project-types)
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -34,6 +38,8 @@ New to the codebase and want to add a project type? See [DEVELOP.md](DEVELOP.md)
 
 - Single-window Tkinter GUI — a project type dropdown plus a form that is rendered dynamically
   from the selected creator's field definitions.
+- Project generation runs off the UI thread, with an indeterminate progress bar and a busy
+  cursor while it works.
 - Works on Windows, macOS and Linux. The Android SDK path is auto-detected per platform.
 - Runs entirely from a folder: the target directory comes from `sys.argv[1]`, so the tool can be
   launched from a file manager context menu.
@@ -42,6 +48,31 @@ New to the codebase and want to add a project type? See [DEVELOP.md](DEVELOP.md)
 - Zero runtime dependencies — only the Python standard library (Tkinter ships with CPython).
 - Template-based creators can also *generate* files from scratch (for example
   `local.properties`), not just copy and rewrite existing ones.
+
+---
+
+## How It Works
+
+The UI is fully decoupled from the generation logic, and the two communicate through a
+controller:
+
+```text
+main.py  ──>  ProjectController  ──>  View (Tkinter)  +  BackgroundRunner
+                     │                                          │
+                     └──>  Registry  ──>  CreateProject.execute() ┘
+```
+
+- `ProjectController` (`src/controller.py:5`) wires the view, the registry and a runner together.
+  It never touches Tkinter directly — it only talks to the `View` interface and to a
+  `BackgroundRunner` abstraction.
+- `BackgroundRunner` (`src/concurrency/runner.py:4`) runs the creation work off the UI thread and
+  delivers `on_success` / `on_error` callbacks back on the UI thread via `View.post`.
+- `CreateProject.execute()` (`src/create/creator.py:22`) validates the inputs, runs the
+  strategy-specific work and writes `guidance.txt`.
+
+Because the view is an abstract interface, a different front-end (CLI, web) only needs a new
+`View` implementation — no creator changes. See
+[Architecture](DEVELOP.md#architecture) for the full picture.
 
 ---
 
@@ -88,8 +119,8 @@ cd create-project
 python src/main.py
 ```
 
-`src` is automatically on `sys.path` because the entry script lives there, so the `create.*`
-and `views.*` imports resolve without any install step.
+`src` is automatically on `sys.path` because the entry script lives there, so the `create.*`,
+`views.*` and `concurrency.*` imports resolve without any install step.
 
 ### 3. (Optional) Build the executable
 
@@ -113,7 +144,9 @@ python src/main.py "C:\Projects"   # explicit target folder
 1. Choose a project type from the dropdown. Selecting a type immediately renders that type's
    form.
 2. Fill in the fields. Defaults are pre-filled — leave a field blank to accept its default.
-3. Press **Submit**. On success the window closes; on failure the error is shown in a dialog.
+3. Press **Submit**. A progress bar appears while the project is generated on a background
+   thread. On success the window closes; on failure the error is shown in a dialog and you can
+   correct the input and try again.
 
 The project is created at `<target folder>/<project name>`.
 
@@ -146,7 +179,7 @@ Each creator declares a `requirements` dictionary. The GUI renders one row per e
 | `option` | List of choices, required for `radio` and `dropdown` |
 
 Field handling lives in `src/views/base/field.py:6` (`Field.value()` strips whitespace and falls
-back to the default) and `src/views/tkinter/tkinter_view.py:48` (`render_form`).
+back to the default) and `src/views/tkinter/tkinter_view.py:50` (`render_form`).
 
 ### Android fields
 
@@ -240,6 +273,7 @@ The same works for a `.desktop` launcher or a Nautilus/Dolphin custom action.
 | `Missing required inputs: project name` | A required field was submitted blank. |
 | `ModuleNotFoundError: No module named 'create'` | Run as `python src/main.py` (not `python create/...`). |
 | `FileNotFoundError` after selecting Android | Run from a checkout that contains `boilerplate/`, or use a PyInstaller build. |
+| Progress bar never stops and no error dialog appears | The background worker failed while reporting its result, so the UI callback never ran. Run from a terminal (`python src/main.py`) to see the traceback, since the GUI build hides it. |
 | Build fails with stale package names | Old Gradle caches survived the rename — run `./gradlew clean` in the generated project. |
 | `rootProject.name` still says `Fishsauce & Cotton` | The boilerplate Gradle project name is not renamed (see [DEVELOP.md](DEVELOP.md#known-caveats)). Edit `settings.gradle.kts` manually. |
 | Exe is unexpectedly large | Build artifacts left inside `boilerplate/`; delete `boilerplate/android-studio/{app/build,build,.gradle,.idea}`. |
